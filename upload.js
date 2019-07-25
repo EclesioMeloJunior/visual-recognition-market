@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
-const fastcsv = require("fast-csv");
 const { Storage } = require("@google-cloud/storage");
+const createCsvWriter = require("csv-writer").createArrayCsvWriter;
 
 const gcloudStorage = new Storage();
 
@@ -40,11 +40,31 @@ async function uploadAndLabeledImage(req, res) {
 	}
 
 	async function writeAndUploadCSVFile(gcloudFileAddress, labels) {
-		const csvFilePath = `tmp/csv/ml_source-${Date.now()}.csv`;
-		const cvsLine = [gcloudFileAddress, ...labels.split(",")];
-		const write = fs.createWriteStream(csvFilePath);
+		const csvFilePath = `tmp/csv/ml_source.csv`;
+		await downloadCSVFromGCloud(csvFilePath);
 
-		await fastcsv.write(cvsLine, { headers: false }).pipe(write);
+		const csvlabels = labels
+			.split(",")
+			.map(label => label.trim())
+			.join(",");
+
+		const line = `\n${gcloudFileAddress},${csvlabels}`;
+
+		fs.appendFileSync(csvFilePath, line);
+		await uploadFileToGCloud(csvFilePath);
+
+		fs.unlinkSync(csvFilePath);
+
+		async function downloadCSVFromGCloud(destination) {
+			const bucketName = process.env.BUCKET;
+
+			await gcloudStorage
+				.bucket(bucketName)
+				.file("ml_source.csv")
+				.download({
+					destination
+				});
+		}
 	}
 }
 

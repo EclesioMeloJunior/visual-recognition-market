@@ -1,3 +1,9 @@
 node_modules/
 .credentials/*.json
 .env
+
+tmp/csv/*.csv
+tmp/images/*.png
+tmp/images/*.jpeg
+tmp/images/*.jpg
+tmp/uploads/*.png
